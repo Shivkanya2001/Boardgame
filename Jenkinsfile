@@ -18,15 +18,21 @@ pipeline {
     }
 
     stage('Compile') {
-      steps { sh 'mvn compile' }
+      steps {
+        sh 'mvn compile'
+      }
     }
 
     stage('Test') {
-      steps { sh 'mvn test' }
+      steps {
+        sh 'mvn test'
+      }
     }
 
     stage('File System Scan') {
-      steps { sh 'trivy fs --format table -o trivy-fs-report.html .' }
+      steps {
+        sh 'trivy fs --format table -o trivy-fs-report.html .'
+      }
     }
 
     stage('SonarQube Analysis') {
@@ -51,13 +57,26 @@ pipeline {
     }
 
     stage('Build') {
-      steps { sh 'mvn package' }
+      steps {
+        sh 'mvn package'
+      }
     }
 
     stage('Publish To Nexus') {
       steps {
-        withMaven(globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17', maven: 'maven3') {
-          sh 'mvn deploy'
+        withCredentials([
+          usernamePassword(credentialsId: 'nexus-cred', usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')
+        ]) {
+          configFileProvider([configFile(fileId: 'global-settings', variable: 'MAVEN_SETTINGS')]) {
+            withMaven(
+              mavenSettingsConfig: 'global-settings',
+              globalMavenSettingsConfig: 'global-settings',
+              jdk: 'jdk17',
+              maven: 'maven3'
+            ) {
+              sh 'mvn deploy'
+            }
+          }
         }
       }
     }
