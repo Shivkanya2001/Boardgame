@@ -134,6 +134,13 @@ pipeline {
             echo "[INFO] Verifying deployed resources..."
             kubectl get pods -n webapps --kubeconfig=$KUBECONFIG || true
             kubectl get svc -n webapps --kubeconfig=$KUBECONFIG || true
+
+            echo "[INFO] Waiting for rollout to complete..."
+            kubectl rollout status deployment/boardgame-deployment -n webapps --timeout=120s --kubeconfig=$KUBECONFIG || {
+              echo "[ERROR] Rollout did not complete in time."
+              exit 1
+            }
+
             echo "[INFO] Describing pods for debug..."
             kubectl describe pods -n webapps --kubeconfig=$KUBECONFIG || true
           '''
