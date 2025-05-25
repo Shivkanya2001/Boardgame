@@ -109,20 +109,18 @@ pipeline {
 
     stage('Deploy To Kubernetes') {
       steps {
-        withCredentials([string(credentialsId: 'k8config-secret', variable: 'KUBECONFIG_CONTENT')]) {
-          writeFile file: 'kubeconfig.yaml', text: KUBECONFIG_CONTENT
-          sh 'kubectl apply -f deployment-service.yaml --kubeconfig=kubeconfig.yaml'
+        withCredentials([file(credentialsId: 'k8config-file', variable: 'KUBECONFIG')]) {
+          sh 'kubectl apply -f deployment-service.yaml --kubeconfig=$KUBECONFIG'
         }
       }
     }
 
     stage('Verify the Deployment') {
       steps {
-        withCredentials([string(credentialsId: 'k8config-secret', variable: 'KUBECONFIG_CONTENT')]) {
-          writeFile file: 'kubeconfig.yaml', text: KUBECONFIG_CONTENT
+        withCredentials([file(credentialsId: 'k8config-file', variable: 'KUBECONFIG')]) {
           sh '''
-            kubectl get pods -n webapps --kubeconfig=kubeconfig.yaml
-            kubectl get svc -n webapps --kubeconfig=kubeconfig.yaml
+            kubectl get pods -n webapps --kubeconfig=$KUBECONFIG
+            kubectl get svc -n webapps --kubeconfig=$KUBECONFIG
           '''
         }
       }
