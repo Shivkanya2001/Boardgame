@@ -111,6 +111,9 @@ pipeline {
       steps {
         withCredentials([file(credentialsId: 'k8config-file', variable: 'KUBECONFIG')]) {
           sh '''
+            echo "[INFO] Ensuring 'webapps' namespace exists..."
+            kubectl create namespace webapps --kubeconfig=$KUBECONFIG || true
+
             echo "[INFO] Current working directory:"
             pwd
             echo "[INFO] Listing files to confirm deployment-service.yaml exists:"
@@ -120,8 +123,8 @@ pipeline {
             kubectl apply --timeout=30s -f deployment-service.yaml --kubeconfig=$KUBECONFIG --validate=false || echo "[WARN] kubectl apply may have timed out"
 
             echo "[INFO] Validating applied resources..."
-            kubectl get deployments --kubeconfig=$KUBECONFIG || true
-            kubectl get services --kubeconfig=$KUBECONFIG || true
+            kubectl get deployments -n webapps --kubeconfig=$KUBECONFIG || true
+            kubectl get services -n webapps --kubeconfig=$KUBECONFIG || true
           '''
         }
       }
