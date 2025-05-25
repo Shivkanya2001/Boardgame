@@ -110,7 +110,14 @@ pipeline {
     stage('Deploy To Kubernetes') {
       steps {
         withCredentials([file(credentialsId: 'k8config-file', variable: 'KUBECONFIG')]) {
-          sh 'kubectl apply -f deployment-service.yaml --kubeconfig=$KUBECONFIG'
+          sh '''
+            echo "[INFO] Current working directory:"
+            pwd
+            echo "[INFO] Listing files to confirm deployment-service.yaml exists:"
+            ls -l
+            echo "[INFO] Applying Kubernetes deployment..."
+            kubectl apply -f deployment-service.yaml --kubeconfig=$KUBECONFIG --validate=false
+          '''
         }
       }
     }
@@ -119,6 +126,7 @@ pipeline {
       steps {
         withCredentials([file(credentialsId: 'k8config-file', variable: 'KUBECONFIG')]) {
           sh '''
+            echo "[INFO] Verifying deployed resources..."
             kubectl get pods -n webapps --kubeconfig=$KUBECONFIG
             kubectl get svc -n webapps --kubeconfig=$KUBECONFIG
           '''
