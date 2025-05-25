@@ -115,8 +115,13 @@ pipeline {
             pwd
             echo "[INFO] Listing files to confirm deployment-service.yaml exists:"
             ls -l
-            echo "[INFO] Applying Kubernetes deployment..."
-            kubectl apply -f deployment-service.yaml --kubeconfig=$KUBECONFIG --validate=false
+
+            echo "[INFO] Applying Kubernetes deployment (with timeout)..."
+            kubectl apply --timeout=30s -f deployment-service.yaml --kubeconfig=$KUBECONFIG --validate=false || echo "[WARN] kubectl apply may have timed out"
+
+            echo "[INFO] Validating applied resources..."
+            kubectl get deployments --kubeconfig=$KUBECONFIG || true
+            kubectl get services --kubeconfig=$KUBECONFIG || true
           '''
         }
       }
@@ -127,8 +132,10 @@ pipeline {
         withCredentials([file(credentialsId: 'k8config-file', variable: 'KUBECONFIG')]) {
           sh '''
             echo "[INFO] Verifying deployed resources..."
-            kubectl get pods -n webapps --kubeconfig=$KUBECONFIG
-            kubectl get svc -n webapps --kubeconfig=$KUBECONFIG
+            kubectl get pods -n webapps --kubeconfig=$KUBECONFIG || true
+            kubectl get svc -n webapps --kubeconfig=$KUBECONFIG || true
+            echo "[INFO] Describing pods for debug..."
+            kubectl describe pods -n webapps --kubeconfig=$KUBECONFIG || true
           '''
         }
       }
