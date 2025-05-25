@@ -66,9 +66,7 @@ pipeline {
 
     stage('Publish To Nexus') {
       steps {
-        withCredentials([
-          usernamePassword(credentialsId: 'nexus-cred', usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')
-        ]) {
+        withCredentials([usernamePassword(credentialsId: 'nexus-cred', usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
           configFileProvider([configFile(fileId: 'global-settings', variable: 'MAVEN_SETTINGS')]) {
             withMaven(
               mavenSettingsConfig: 'global-settings',
@@ -111,11 +109,7 @@ pipeline {
 
     stage('Deploy To Kubernetes') {
       steps {
-        withKubeConfig(
-          credentialsId: 'k8-cred',
-          namespace: 'webapps',
-          serverUrl: 'https://54.211.129.225:6443'
-        ) {
+        withCredentials([file(credentialsId: 'k8config-secret', variable: 'KUBECONFIG')]) {
           sh 'kubectl apply -f deployment-service.yaml'
         }
       }
@@ -123,11 +117,7 @@ pipeline {
 
     stage('Verify the Deployment') {
       steps {
-        withKubeConfig(
-          credentialsId: 'k8-cred',
-          namespace: 'webapps',
-          serverUrl: 'https://54.211.129.225:6443'
-        ) {
+        withCredentials([file(credentialsId: 'k8config-secret', variable: 'KUBECONFIG')]) {
           sh '''
             kubectl get pods -n webapps
             kubectl get svc -n webapps
