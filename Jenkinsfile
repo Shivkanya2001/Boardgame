@@ -123,8 +123,8 @@ pipeline {
             kubectl apply --timeout=30s -f deployment-service.yaml --kubeconfig=$KUBECONFIG --validate=false || echo "[WARN] kubectl apply may have timed out"
 
             echo "[INFO] Validating applied resources..."
-            kubectl get deployments -n webapps --kubeconfig=$KUBECONFIG || true
-            kubectl get services -n webapps --kubeconfig=$KUBECONFIG || true
+            kubectl get deployments -n default --kubeconfig=$KUBECONFIG || true
+            kubectl get services -n default --kubeconfig=$KUBECONFIG || true
           '''
         }
       }
@@ -135,11 +135,11 @@ pipeline {
         withCredentials([file(credentialsId: 'k8config-file', variable: 'KUBECONFIG')]) {
           sh '''
             echo "[INFO] Verifying deployed resources..."
-            kubectl get pods -n webapps --kubeconfig=$KUBECONFIG || true
-            kubectl get svc -n webapps --kubeconfig=$KUBECONFIG || true
+            kubectl get pods -n default --kubeconfig=$KUBECONFIG || true
+            kubectl get svc -n default --kubeconfig=$KUBECONFIG || true
 
             echo "[INFO] Waiting for rollout to complete..."
-            kubectl rollout status deployment/boardgame-deployment -n webapps --timeout=120s --kubeconfig=$KUBECONFIG || {
+            kubectl rollout status deployment/boardgame-deployment -n default --timeout=120s --kubeconfig=$KUBECONFIG || {
               echo "[ERROR] Rollout did not complete in time."
               exit 1
             }
