@@ -31,7 +31,7 @@ pipeline {
 
     stage('File System Scan') {
       steps {
-        sh 'trivy fs --format table -o trivy-fs-report.html . || true'
+        sh 'trivy fs --format table -o $WORKSPACE/trivy-fs-report.html . || true'
       }
     }
 
@@ -93,7 +93,7 @@ pipeline {
 
     stage('Docker Image Scan') {
       steps {
-        sh 'trivy image --format table -o trivy-image-report.html shivkanyadoiphode/boardgame:latest || true'
+        sh 'trivy image --format table -o $WORKSPACE/trivy-image-report.html shivkanyadoiphode/boardgame:latest || true'
       }
     }
 
@@ -109,18 +109,20 @@ pipeline {
 
     stage('Deploy To Kubernetes') {
       steps {
-        withCredentials([file(credentialsId: 'k8config-secret', variable: 'KUBECONFIG')]) {
-          sh 'kubectl apply -f deployment-service.yaml'
+        withCredentials([string(credentialsId: 'k8config-secret', variable: 'KUBECONFIG_CONTENT')]) {
+          writeFile file: 'kubeconfig.yaml', text: "${KUBECONFIG_CONTENT}"
+          sh 'kubectl apply -f deployment-service.yaml --kubeconfig=kubeconfig.yaml'
         }
       }
     }
 
     stage('Verify the Deployment') {
       steps {
-        withCredentials([file(credentialsId: 'k8config-secret', variable: 'KUBECONFIG')]) {
+        withCredentials([string(credentialsId: 'k8config-secret', variable: 'KUBECONFIG_CONTENT')]) {
+          writeFile file: 'kubeconfig.yaml', text: "${KUBECONFIG_CONTENT}"
           sh '''
-            kubectl get pods -n webapps
-            kubectl get svc -n webapps
+            kubectl get pods -n webapps --kubeconfig=kubeconfig.yaml
+            kubectl get svc -n webapps --kubeconfig=kubeconfig.yaml
           '''
         }
       }
@@ -144,7 +146,7 @@ pipeline {
           to: 'shivani.doiphode2001@gmail.com',
           from: 'jenkins@example.com',
           mimeType: 'text/html',
-          attachmentsPattern: 'trivy-image-report.html'
+          attachmentsPattern: '**/trivy-image-report.html'
         )
       }
     }
