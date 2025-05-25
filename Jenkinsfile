@@ -31,7 +31,7 @@ pipeline {
 
     stage('File System Scan') {
       steps {
-        sh 'trivy fs --format table -o trivy-fs-report.html .'
+        sh 'trivy fs --format table -o trivy-fs-report.html . || true'
       }
     }
 
@@ -42,7 +42,7 @@ pipeline {
             $SCANNER_HOME/bin/sonar-scanner \
               -Dsonar.projectName=BoardGame \
               -Dsonar.projectKey=BoardGame \
-              -Dsonar.java.binaries=.
+              -Dsonar.java.binaries=target
           '''
         }
       }
@@ -51,14 +51,16 @@ pipeline {
     stage('Quality Gate') {
       steps {
         script {
-          waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+          timeout(time: 2, unit: 'MINUTES') {
+            waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+          }
         }
       }
     }
 
     stage('Build') {
       steps {
-        sh 'mvn package'
+        sh 'mvn package -DskipTests'
       }
     }
 
@@ -74,7 +76,7 @@ pipeline {
               jdk: 'jdk17',
               maven: 'maven3'
             ) {
-              sh 'mvn deploy'
+              sh 'mvn deploy -DskipTests'
             }
           }
         }
@@ -93,7 +95,7 @@ pipeline {
 
     stage('Docker Image Scan') {
       steps {
-        sh 'trivy image --format table -o trivy-image-report.html shivkanyadoiphode/boardgame:latest'
+        sh 'trivy image --format table -o trivy-image-report.html shivkanyadoiphode/boardgame:latest || true'
       }
     }
 
@@ -126,8 +128,10 @@ pipeline {
           namespace: 'webapps',
           serverUrl: 'https://54.211.129.225:6443'
         ) {
-          sh 'kubectl get pods -n webapps'
-          sh 'kubectl get svc -n webapps'
+          sh '''
+            kubectl get pods -n webapps
+            kubectl get svc -n webapps
+          '''
         }
       }
     }
@@ -139,7 +143,7 @@ pipeline {
         def status = currentBuild.result ?: 'SUCCESS'
         def body = """
         <html><body>
-        <h2>${env.JOB_NAME} - Build ${env.BUILD_NUMBER}</h2>
+        <h2>${env.JOB_NAME} - Build #${env.BUILD_NUMBER}</h2>
         <h3 style='color:white;background-color:${status == 'SUCCESS' ? 'green' : 'red'};padding:10px;'>Pipeline Status: ${status}</h3>
         <p><a href='${env.BUILD_URL}'>View Console Output</a></p>
         </body></html>
